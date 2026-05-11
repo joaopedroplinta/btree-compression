@@ -1,17 +1,56 @@
-# Binários compilados
+# Executáveis
 btree
 compress
+*.out
+*.exe
 
-# Arquivos gerados em runtime
+# Objetos e arquivos intermediários de compilação
+*.o
+*.a
+*.so
+*.d
+
+# Diretórios de build
+build/
+bin/
+obj/
+
+# Arquivos gerados em runtime pelo programa
 *.bin
 *.lzw
 *.huf
 
-# Intermediários do LaTeX
-*.aux
-*.log
-*.toc
-*.out
+# Arquivos gerados pelo make report
+relatorio.aux
+relatorio.log
+relatorio.toc
+relatorio.out
 
-# Zip de entrega
+# Arquivos de profiling e cobertura
+gmon.out
+*.gcda
+*.gcno
+*.gcov
+
+# Valgrind
+vgcore.*
+callgrind.out.*
+cachegrind.out.*
+
+# Arquivos de editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Arquivos temporários
+*.tmp
+
+# Não incluir o zip final de entrega no repositório
 *.zip
+
+# Notas internas (uso do assistente)
+CLAUDE.md
