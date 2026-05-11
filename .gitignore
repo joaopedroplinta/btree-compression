@@ -1,0 +1,17 @@
+# Binários compilados
+btree
+compress
+
+# Arquivos gerados em runtime
+*.bin
+*.lzw
+*.huf
+
+# Intermediários do LaTeX
+*.aux
+*.log
+*.toc
+*.out
+
+# Zip de entrega
+*.zip
