@@ -153,6 +153,7 @@ Memoria      : 4804 KB
 - Códigos canônicos gerados a partir dos comprimentos → decompressor determinístico
 - Cabeçalho: magic `HUF\0` + tamanho original (8 B) + padding (1 B) + 256 comprimentos (1 B cada)
 - Bits escritos MSB-primeiro dentro de cada byte
+- Descompressão via **trie binária estática** (vetor de nós com índices de filho): O(k) por símbolo, ~7× mais rápido que busca por string de bits
 
 ---
 
