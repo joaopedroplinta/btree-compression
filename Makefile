@@ -35,6 +35,7 @@ zip: relatorio.pdf
 	        $$PARENT/$(ZIP_NAME)/relatorio.toc \
 	        $$PARENT/$(ZIP_NAME)/relatorio.out; \
 	 find $$PARENT/$(ZIP_NAME) -name "t2-*.pdf" -delete; \
+	 rm -rf $$PARENT/$(ZIP_NAME)/img; \
 	 find $$PARENT/$(ZIP_NAME) -name "*.bin" -delete; \
 	 find $$PARENT/$(ZIP_NAME) -name "*.lzw" -delete; \
 	 find $$PARENT/$(ZIP_NAME) -name "*.huf" -delete; \
