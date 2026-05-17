@@ -28,10 +28,13 @@ zip: relatorio.pdf
 	        $$PARENT/$(ZIP_NAME)/CLAUDE.md; \
 	 rm -f  $$PARENT/$(ZIP_NAME)/btree \
 	        $$PARENT/$(ZIP_NAME)/compress \
+	        $$PARENT/$(ZIP_NAME)/relatorio.tex \
+	        $$PARENT/$(ZIP_NAME)/ifpr-pinhais.cls \
 	        $$PARENT/$(ZIP_NAME)/relatorio.aux \
 	        $$PARENT/$(ZIP_NAME)/relatorio.log \
 	        $$PARENT/$(ZIP_NAME)/relatorio.toc \
 	        $$PARENT/$(ZIP_NAME)/relatorio.out; \
+	 find $$PARENT/$(ZIP_NAME) -name "t2-*.pdf" -delete; \
 	 find $$PARENT/$(ZIP_NAME) -name "*.bin" -delete; \
 	 find $$PARENT/$(ZIP_NAME) -name "*.lzw" -delete; \
 	 find $$PARENT/$(ZIP_NAME) -name "*.huf" -delete; \
