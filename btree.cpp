@@ -49,9 +49,9 @@ class BTree {
     Node* search_node(Node* x, const std::string& k, int* idx) {
         if (!x) return nullptr;
         nodes_vis++;
-        int i = 0;
-        while (i < x->n && k > x->keys[i]) i++;
-        if (i < x->n && k == x->keys[i]) { if (idx) *idx = i; return x; }
+        auto it = std::lower_bound(x->keys.begin(), x->keys.begin() + x->n, k);
+        int i = (int)(it - x->keys.begin());
+        if (i < x->n && *it == k) { if (idx) *idx = i; return x; }
         if (x->leaf) return nullptr;
         return search_node(x->ch[i], k, idx);
     }
@@ -72,14 +72,13 @@ class BTree {
 
     void insert_nonfull(Node* x, const std::string& k) {
         nodes_vis++;
-        int i = x->n - 1;
+        auto it = std::lower_bound(x->keys.begin(), x->keys.begin() + x->n, k);
+        int i = (int)(it - x->keys.begin());
         if (x->leaf) {
-            while (i >= 0 && k < x->keys[i]) { x->keys[i + 1] = x->keys[i]; i--; }
-            x->keys[i + 1] = k;
+            for (int j = x->n; j > i; j--) x->keys[j] = x->keys[j - 1];
+            x->keys[i] = k;
             x->n++;
         } else {
-            while (i >= 0 && k < x->keys[i]) i--;
-            i++;
             if (x->ch[i]->n == 2*t - 1) {
                 split_child(x, i);
                 if (k > x->keys[i]) i++;
@@ -89,9 +88,8 @@ class BTree {
     }
 
     int find_idx(Node* x, const std::string& k) {
-        int i = 0;
-        while (i < x->n && x->keys[i] < k) i++;
-        return i;
+        auto it = std::lower_bound(x->keys.begin(), x->keys.begin() + x->n, k);
+        return (int)(it - x->keys.begin());
     }
 
     std::string get_pred(Node* x) {
@@ -209,6 +207,19 @@ class BTree {
         return x;
     }
 
+    int height_rec(Node* x) {
+        if (!x || x->leaf) return 1;
+        return 1 + height_rec(x->ch[0]);
+    }
+
+    void count_rec(Node* x, long& nodes, long& keys) {
+        if (!x) return;
+        nodes++;
+        keys += x->n;
+        if (!x->leaf)
+            for (int i = 0; i <= x->n; i++) count_rec(x->ch[i], nodes, keys);
+    }
+
     void print_inorder(Node* x) {
         if (!x) return;
         for (int i = 0; i < x->n; i++) {
@@ -320,6 +331,21 @@ public:
         std::cout << "Arvore carregada de '" << path << "' (T=" << t << ").\n";
     }
 
+    void stats() {
+        long nodes = 0, keys = 0;
+        count_rec(root, nodes, keys);
+        int h = height_rec(root);
+        int max_per_node = 2*t - 1;
+        double fill = (nodes > 0)
+            ? 100.0 * (double)keys / (nodes * max_per_node)
+            : 0.0;
+        std::cout << "Altura       : " << h          << '\n'
+                  << "Total nos    : " << nodes       << '\n'
+                  << "Total chaves : " << keys        << '\n'
+                  << "Max chaves/no: " << max_per_node << " (T=" << t << ")\n"
+                  << "Fill factor  : " << fill        << "%\n";
+    }
+
     void print() { print_tree_rec(root, "", true, true); }
     void list()  { print_inorder(root); }
 };
@@ -356,6 +382,8 @@ int main(int argc, char* argv[]) {
             bt.save(path); timed = false;
         } else if (cmd == "load" && (ss >> path)) {
             bt.load(path); timed = false;
+        } else if (cmd == "stats") {
+            bt.stats(); timed = false;
         } else if (cmd == "print") {
             bt.print(); timed = false;
         } else if (cmd == "list") {
@@ -364,7 +392,7 @@ int main(int argc, char* argv[]) {
             break;
         } else {
             std::cout << "Comandos: insert <chave> | read <chave> | delete <chave>"
-                         " | save <arq> | load <arq> | print | list | quit\n";
+                         " | save <arq> | load <arq> | stats | print | list | quit\n";
             timed = false;
         }
 

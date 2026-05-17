@@ -342,6 +342,33 @@ static std::vector<uint8_t> huffman_compress(const std::vector<uint8_t>& in) {
     return out;
 }
 
+// Trie binaria para decodificacao Huffman.
+// Nós armazenados em vetor; ch[0]/ch[1] são índices (-1 = ausente).
+// Folhas têm sym >= 0; nós internos têm sym = -1.
+struct TrieNode {
+    int ch[2];
+    int sym;
+    TrieNode() : ch{-1, -1}, sym(-1) {}
+};
+
+static std::vector<TrieNode> build_decode_trie(
+        const std::map<uint8_t, std::string>& codes) {
+    std::vector<TrieNode> trie(1); // índice 0 = raiz
+    for (auto& [sym, bits] : codes) {
+        int node = 0;
+        for (char c : bits) {
+            int b = c - '0';
+            if (trie[node].ch[b] == -1) {
+                trie[node].ch[b] = (int)trie.size();
+                trie.emplace_back();
+            }
+            node = trie[node].ch[b];
+        }
+        trie[node].sym = (int)(uint8_t)sym;
+    }
+    return trie;
+}
+
 static std::vector<uint8_t> huffman_decompress(const std::vector<uint8_t>& in) {
     const size_t HEADER = 4 + 8 + 1 + 256; // magic + orig_size + padding + lens
     if (in.size() < HEADER ||
@@ -356,24 +383,22 @@ static std::vector<uint8_t> huffman_decompress(const std::vector<uint8_t>& in) {
 
     if (orig_size == 0) return {};
 
-    auto codes = canonical_codes(lens); // sym -> bits
-    // Inverte para decodificacao: bits -> sym
-    std::map<std::string, uint8_t> decode;
-    for (auto& [sym, bits] : codes) decode[bits] = sym;
+    auto codes = canonical_codes(lens);
+    auto trie  = build_decode_trie(codes);
 
     std::vector<uint8_t> out;
     out.reserve(orig_size);
 
     BitReader br(in, HEADER, padding);
-    std::string cur;
+    int node = 0;
     while (out.size() < orig_size) {
         int bit = br.read();
         if (bit < 0) break;
-        cur += (char)('0' + bit);
-        auto it = decode.find(cur);
-        if (it != decode.end()) {
-            out.push_back(it->second);
-            cur.clear();
+        node = trie[node].ch[bit];
+        if (node == -1) throw std::runtime_error("Trie Huffman: caminho invalido");
+        if (trie[node].sym >= 0) {
+            out.push_back((uint8_t)trie[node].sym);
+            node = 0;
         }
     }
 

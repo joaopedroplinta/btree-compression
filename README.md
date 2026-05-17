@@ -1,6 +1,6 @@
 # Trabalho 2 — Estruturas de Dados Avançadas
 
-**Integrantes:** <!-- coloque seu nome completo aqui -->  
+**Integrantes:** João Pedro dos Santos Henrique Plinta  
 **Curso:** Bacharelado em Ciência da Computação — IFPR Campus Pinhais  
 **Disciplina:** Estruturas de Dados Avançadas  
 **Entrega:** 10/junho/2026
@@ -56,6 +56,7 @@ read   <chave>     busca e exibe a chave
 delete <chave>     remove a chave (se existir)
 save   <arquivo>   salva a árvore em arquivo binário
 load   <arquivo>   carrega a árvore a partir de um arquivo
+stats              exibe altura, total de nós, total de chaves e fill factor
 print              exibe a estrutura hierárquica da árvore no terminal
 list               lista todas as chaves em ordem crescente
 quit               encerra o programa
@@ -163,7 +164,7 @@ Memoria      : 4804 KB
 ./test_btree.sh
 ```
 
-Executa inserções, buscas e remoções com **T=3** e **T=50** para 50, 1 000 e 10 000 chaves. Imprime as métricas de cada operação.
+Executa inserções, buscas e remoções com **T=3** e **T=50** para 100, 10 000, 100 000 e 1 000 000 chaves. Para N grande, a saída detalhada é salva em `/tmp/tree_T<T>_N<N>.log` e apenas as últimas linhas são exibidas no terminal. "Bilhões de chaves" exigiria armazenamento em disco (árvore B persistente) — fora do escopo desta implementação em memória principal.
 
 ### Teste de compressão
 
@@ -171,7 +172,7 @@ Executa inserções, buscas e remoções com **T=3** e **T=50** para 50, 1 000 e
 ./test_compress.sh
 ```
 
-Para cada combinação de T e tamanho, comprime e descomprime o arquivo da árvore com ambos os algoritmos e verifica a integridade (`cmp`).
+Para cada combinação de T e tamanho (100, 10 000, 100 000, 1 000 000 chaves), comprime e descomprime o arquivo da árvore com ambos os algoritmos e verifica a integridade (`cmp`). Gera os arquivos `.bin` automaticamente se necessário.
 
 ### Teste manual rápido
 

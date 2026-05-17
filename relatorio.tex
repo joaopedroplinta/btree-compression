@@ -114,11 +114,11 @@ As chaves são armazenadas como \texttt{std::string}, com comparação lexicogr�
 
 \subsubsection{Inserção}
 
-A inserção utiliza a estratégia \textit{proativa}: ao descer pela árvore, nós cheios ($n = 2T-1$) são divididos (\textit{split}) antes de continuar a descida. Isso evita que seja necessário subir novamente após a inserção na folha. A complexidade é $O(T \cdot \log_T N)$.
+A inserção utiliza a estratégia \textit{proativa}: ao descer pela árvore, nós cheios ($n = 2T-1$) são divididos (\textit{split}) antes de continuar a descida. Isso evita que seja necessário subir novamente após a inserção na folha. A posição dentro de cada nó é encontrada com \texttt{std::lower\_bound} (busca binária). A complexidade é $O(\log T \cdot \log_T N) = O(\log N)$.
 
 \subsubsection{Busca}
 
-A busca compara a chave com as chaves do nó atual da esquerda para a direita. Ao encontrar a posição correta, desce para o filho correspondente ou retorna ``não encontrado'' em uma folha. Complexidade: $O(T \cdot \log_T N)$.
+A busca usa busca binária (\texttt{std::lower\_bound}) para localizar a posição da chave dentro de cada nó. Ao encontrar a posição correta, desce para o filho correspondente ou retorna ``não encontrado'' em uma folha. Complexidade: $O(\log T \cdot \log_T N) = O(\log N)$.
 
 \subsubsection{Remoção}
 
@@ -237,7 +237,7 @@ O algoritmo de Huffman atribui códigos de comprimento variável a cada símbolo
 
 \subsubsection{Descompressão}
 
-O descompressor lê os 256 comprimentos do cabeçalho, reconstrói os mesmos códigos canônicos e decodifica o fluxo de bits símbolo a símbolo até que \texttt{tamanho\_original} bytes sejam produzidos.
+O descompressor lê os 256 comprimentos do cabeçalho, reconstrói os códigos canônicos e constrói uma \textbf{trie binária} estática em vetor. Cada nó da trie armazena dois índices de filho (bit~0 e bit~1) e o símbolo decodificado ($-1$ se nó interno). A decodificação percorre a trie bit a bit — ao atingir uma folha, emite o símbolo e retorna à raiz — eliminando a busca em mapa de \textit{strings} da abordagem ingênua e reduzindo o custo de $O(k \cdot \log n)$ para $O(k)$ por símbolo (onde $k$ é o comprimento do código).
 
 \subsubsection{Formato do arquivo}
 
@@ -268,130 +268,139 @@ O cabeçalho tem tamanho fixo de \textbf{269 bytes}, o que explica a menor efici
 \toprule
 Componente & Especificação \\
 \midrule
-Sistema operacional & Linux 6.6 (WSL2) \\
-Compilador & g++ 13, flags \texttt{-O2 -std=c++17} \\
-Geração de chaves & \textit{strings} aleatórias de 4--10 letras minúsculas \\
+Sistema operacional & Linux 7.0.0 \\
+Compilador & g++, flags \texttt{-O2 -std=c++17} \\
+Chaves ($N \leq 10.000$) & \textit{strings} aleatórias de 4--12 chars (letras + dígitos) \\
+Chaves ($N > 10.000$) & sequenciais embaralhadas (\texttt{k000000000}--\texttt{k000999999}) \\
 Semente & 42 (reprodutível) \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-\subsection{Desempenho de inserção}
+\subsection{Desempenho de inserção, busca e remoção}
 
-Para cada combinação de $N$ (número de chaves) e $T$ (grau mínimo), foram inseridas $N$ chaves e calculadas as médias por operação.
+Para cada combinação de $N$ e $T$, foram medidos os nós visitados e o tempo de todas as operações (inserções, buscas e remoções), com média calculada sobre o conjunto completo.
 
 \begin{table}[H]
 \centering
-\caption{Desempenho médio de inserção}
+\caption{Desempenho médio por operação (média de insert + read + delete)}
 \label{tab:insert}
-\begin{tabular}{c rr rr rr}
+\begin{tabular}{c rr rr r}
 \toprule
- & \multicolumn{2}{c}{$T = 3$} & \multicolumn{2}{c}{$T = 50$} & \multicolumn{2}{c}{Redução (T50 vs T3)} \\
-\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
-$N$ & Nós visit. & Tempo ($\mu$s) & Nós visit. & Tempo ($\mu$s) & Nós & Tempo \\
+ & \multicolumn{2}{c}{$T = 3$} & \multicolumn{2}{c}{$T = 50$} & Redução \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+$N$ & Nós visit. & Tempo ($\mu$s) & Nós visit. & Tempo ($\mu$s) & em nós \\
 \midrule
-1.000    & 4,55 & 0,92 & 1,90 & 1,08 & $-$58\% & $-$17\% \\
-10.000   & 6,35 & 1,28 & 2,29 & 1,44 & $-$64\% & $-$12\% \\
-100.000  & 8,08 & 1,80 & 2,93 & 2,02 & $-$64\% & $-$12\% \\
+100        & 2,91 & 0,79 & 1,18 & 0,55 & $-$59\% \\
+10.000     & 6,39 & 0,77 & 2,31 & 0,91 & $-$64\% \\
+100.000    & 8,08 & 1,05 & 2,93 & 0,85 & $-$64\% \\
+1.000.000  & 9,93 & 1,20 & 3,54 & 1,28 & $-$64\% \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-O crescimento dos nós visitados segue a razão logarítmica esperada. Para $T = 3$, o número de nós visitados cresce de 4,55 para 8,08 ao aumentar $N$ de 1.000 para 100.000 (aumento de $100\times$ em $N$, aumento de $\approx 1{,}8\times$ em nós visitados). Para $T = 50$, o crescimento é ainda menor: de 1,90 para 2,93 ($\approx 1{,}5\times$).
+O crescimento dos nós visitados segue a razão logarítmica esperada: ao aumentar $N$ de 100 para 1.000.000 (fator $10.000\times$), $T = 3$ passa de 2,91 para 9,93 nós ($\approx 3{,}4\times$) e $T = 50$ passa de 1,18 para 3,54 ($\approx 3\times$). A redução relativa de nós visitados se mantém estável em torno de $-$64\% para $N \geq 10.000$.
 
-Embora $T = 50$ visite menos nós, seu tempo por operação é \textit{ligeiramente} maior. Isso se deve ao fato de que cada nó com $T = 50$ tem mais chaves para comparar internamente --- o custo de varredura linear dentro do nó é maior, parcialmente compensando o ganho em profundidade.
+Ambos os graus usam busca binária dentro dos nós ($O(\log T)$ comparações por nó). O total de comparações de chave é $O(\log T \cdot \log_T N) = O(\log N)$, independentemente de $T$. Na prática, os tempos são próximos: para $N = 1.000.000$, $T = 3$ leva 1,20~$\mu$s e $T = 50$ leva 1,28~$\mu$s, pois $T = 50$ visita menos nós mas faz mais comparações por nó ($\lceil\log_2 99\rceil = 7$ vs $\lceil\log_2 5\rceil = 3$).
 
-\subsection{Desempenho de busca}
-
-Foram realizadas 400 buscas após inserir 100.000 chaves: 200 em chaves existentes e 200 em chaves inexistentes.
+\subsection{Estrutura da árvore}
 
 \begin{table}[H]
 \centering
-\caption{Desempenho de busca com $N = 100.000$ chaves}
-\label{tab:search}
-\begin{tabular}{lcc}
+\caption{Estrutura da árvore após inserção de $N$ chaves}
+\label{tab:stats}
+\begin{tabular}{c rrc rrc}
 \toprule
-Operação & $T = 3$ (nós visit.) & $T = 50$ (nós visit.) \\
+ & \multicolumn{3}{c}{$T = 3$} & \multicolumn{3}{c}{$T = 50$} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}
+$N$ & Altura & Total nós & Fill & Altura & Total nós & Fill \\
 \midrule
-Busca (existente + inexistente) & 7,89 & 2,96 \\
+100        & 3  &      31 & 58,1\% & 1 &      1 & 90,9\% \\
+10.000     & 7  &   3.108 & 64,3\% & 3 &    145 & 69,6\% \\
+100.000    & 9  &  31.210 & 64,1\% & 3 &  1.436 & 70,3\% \\
+1.000.000  & 10 & 312.680 & 64,0\% & 4 & 14.575 & 69,3\% \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-O comportamento é consistente com a inserção: $T = 50$ visita aproximadamente $2{,}7\times$ menos nós. As buscas por chaves inexistentes percorrem a árvore até uma folha, visitando tantos nós quanto a altura da árvore.
+Com $N = 1.000.000$, $T = 50$ tem apenas 4 níveis e 14.575 nós, contra 10 níveis e 312.680 nós para $T = 3$ --- uma redução de $\approx 21\times$ no número de nós. O fill factor (fração de slots de chave ocupados) se estabiliza em $\approx 64\%$ para $T = 3$ e $\approx 70\%$ para $T = 50$ a partir de $N = 10.000$.
 
-\subsection{Desempenho de remoção}
-
-Foram removidas 10\% das chaves (10.000) após inserir 100.000.
-
-\begin{table}[H]
-\centering
-\caption{Desempenho de remoção com $N = 100.000$ chaves}
-\label{tab:delete}
-\begin{tabular}{lcc}
-\toprule
- & $T = 3$ & $T = 50$ \\
-\midrule
-Média de nós visitados & 8,01 & 3,00 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-A remoção visita ligeiramente mais nós do que a busca, pois pode precisar realizar \textit{merge} ou empréstimo de chaves entre nós irmãos, o que envolve acessos adicionais.
+As médias da Tabela~\ref{tab:insert} incluem busca e remoção. O comportamento de busca e remoção é consistente com a inserção: $T = 50$ visita em média $\approx 64\%$ menos nós em todos os tamanhos. Buscas por chaves inexistentes percorrem a árvore até uma folha, visitando tantos nós quanto a altura. A remoção visita nós adicionais nos casos em que é necessário realizar \textit{merge} ou empréstimo de chaves entre nós irmãos.
 
 \subsection{Memória utilizada}
 
 \begin{table}[H]
 \centering
-\caption{Memória residente ao final da inserção de $N$ chaves}
+\caption{Memória residente (VmRSS) ao final da inserção de $N$ chaves}
 \label{tab:mem}
-\begin{tabular}{ccc}
+\begin{tabular}{crrc}
 \toprule
-$N$ & $T = 3$ (KB) & $T = 50$ (KB) \\
+$N$ & $T = 3$ (KB) & $T = 50$ (KB) & Redução \\
 \midrule
-1.000   & 3.712  & 3.712  \\
-10.000  & 4.480  & 4.096  \\
-100.000 & 12.800 & 9.088  \\
+100        &  4.232 &  4.232 & 0\%  \\
+10.000     &  5.148 &  4.788 & $-$7\%  \\
+100.000    & 13.492 &  9.928 & $-$26\% \\
+1.000.000  & 97.012 & 62.068 & $-$36\% \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Com $T = 50$, a memória é cerca de \textbf{29\% menor} para 100.000 chaves. Isso ocorre pois há menos nós no total (a árvore é mais larga e rasa), apesar de cada nó individual ser maior.
+Com $T = 50$, a memória é \textbf{36\% menor} para 1.000.000 de chaves ($\approx 95$ MB vs $\approx 61$ MB). Embora cada nó com $T = 50$ seja individualmente maior (até 99 slots de chave), o número total de nós é $\approx 21\times$ menor, resultando em menor uso total de memória.
 
 \subsection{Compressão}
 
-As árvores foram salvas com $T = 3$ e comprimidas com ambos os algoritmos.
+As árvores foram comprimidas com ambos os algoritmos para $T = 3$ e $T = 50$.
 
 \begin{table}[H]
 \centering
-\caption{Resultados de compressão dos arquivos de árvore}
-\label{tab:compress}
+\caption{Taxa de compressão — $T = 3$}
+\label{tab:compress_t3}
 \begin{tabular}{c r rr rr}
 \toprule
  & & \multicolumn{2}{c}{LZW} & \multicolumn{2}{c}{Huffman} \\
 \cmidrule(lr){3-4}\cmidrule(lr){5-6}
 $N$ & Original & Comprimido & Taxa & Comprimido & Taxa \\
 \midrule
-1.000   & 13,2 KB    & 9,9 KB    & $1{,}34\times$ & 7,3 KB    & $1{,}81\times$ \\
-10.000  & 132,1 KB   & 73,4 KB   & $1{,}80\times$ & 70,4 KB   & $1{,}88\times$ \\
-100.000 & 1.318,5 KB & 675,0 KB  & $1{,}95\times$ & 700,4 KB  & $1{,}88\times$ \\
+100        &  1,3 KB    &  1,7 KB    & $0{,}81\times$ &  1,0 KB    & $1{,}29\times$ \\
+10.000     &  141,6 KB  &  88,3 KB   & $1{,}60\times$ &  82,2 KB   & $1{,}72\times$ \\
+100.000    & 1.610,9 KB & 384,8 KB   & $4{,}19\times$ & 637,8 KB   & $2{,}52\times$ \\
+1.000.000  & 15,7 MB    &  4,4 MB    & $3{,}60\times$ &  6,5 MB    & $2{,}41\times$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \begin{table}[H]
 \centering
-\caption{Tempo e memória de compressão}
+\caption{Taxa de compressão — $T = 50$}
+\label{tab:compress_t50}
+\begin{tabular}{c r rr rr}
+\toprule
+ & & \multicolumn{2}{c}{LZW} & \multicolumn{2}{c}{Huffman} \\
+\cmidrule(lr){3-4}\cmidrule(lr){5-6}
+$N$ & Original & Comprimido & Taxa & Comprimido & Taxa \\
+\midrule
+100        &  1,1 KB    &  1,5 KB    & $0{,}72\times$ &  0,94 KB   & $1{,}17\times$ \\
+10.000     &  118,4 KB  &  84,0 KB   & $1{,}41\times$ &  73,4 KB   & $1{,}61\times$ \\
+100.000    & 1.378,3 KB & 353,3 KB   & $3{,}90\times$ & 548,2 KB   & $2{,}51\times$ \\
+1.000.000  & 13,5 MB    &  3,9 MB    & $3{,}46\times$ &  5,7 MB    & $2{,}38\times$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Tempo de compressão e descompressão ($T = 3$, descompressão Huffman com trie)}
 \label{tab:compress_time}
 \begin{tabular}{c rr rr}
 \toprule
  & \multicolumn{2}{c}{LZW} & \multicolumn{2}{c}{Huffman} \\
 \cmidrule(lr){2-3}\cmidrule(lr){4-5}
-$N$ & Tempo & Memória & Tempo & Memória \\
+$N$ & Compressão & Descompressão & Compressão & Descompressão \\
 \midrule
-1.000   & 2,0 ms   & 3.772 KB & 0,7 ms   & 3.328 KB \\
-10.000  & 13,1 ms  & 5.976 KB & 3,4 ms   & 3.584 KB \\
-100.000 & 120,0 ms & 9.496 KB & 25,4 ms  & 5.376 KB \\
+100        &  0,60 ms &   0,11 ms &  0,14 ms &   0,16 ms \\
+10.000     & 17,5 ms  &   3,53 ms &  3,64 ms &   2,09 ms \\
+100.000    & 142 ms   &  10,0 ms  & 16,8 ms  &  22,3 ms  \\
+1.000.000  & 1.535 ms &  73,8 ms  & 186 ms   & 210 ms    \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -414,21 +423,18 @@ Para $N = 100.000$: $h_{T=3} \approx 11$ e $h_{T=50} \approx 3$.
 
 Em sistemas de banco de dados reais, onde cada nó representa um bloco de disco (tipicamente 4--16 KB), a redução de $\approx 8$ para $\approx 3$ acessos a disco por operação representa uma melhoria expressiva. Com latência de disco de $\approx 5$ ms por acesso, a economia seria de $\approx 25$ ms por operação.
 
-No contexto em memória principal (como neste trabalho), a vantagem de $T$ grande é menor porque o custo de acesso a nós distintos é baixo. De fato, o tempo por operação com $T = 50$ é apenas $\approx 12\%$ menor do que com $T = 3$, pois o custo de varredura linear dentro de nós maiores parcialmente compensa a menor profundidade.
+No contexto em memória principal, ambos os graus usam busca binária dentro dos nós. Como o número total de comparações de chave é $O(\log N)$ independentemente de $T$, as diferenças de tempo são modestas. Para $N = 1.000.000$, $T = 50$ é ligeiramente mais lento (1,28~$\mu$s vs 1,20~$\mu$s): embora visite menos nós, cada nó com até 99 chaves exige $\lceil\log_2 99\rceil = 7$ comparações contra $\lceil\log_2 5\rceil = 3$ para $T = 3$, compensando parte do ganho em profundidade.
 
 \subsection{Comparação entre LZW e Huffman}
 
-O comportamento dos dois algoritmos varia conforme o tamanho do arquivo:
+O comportamento dos dois algoritmos varia conforme o tamanho do arquivo e o tipo de chave:
 
 \begin{itemize}
-    \item Para $N = 1.000$ e $N = 10.000$: Huffman supera o LZW tanto em taxa ($1{,}81\times$/$1{,}88\times$ vs $1{,}34\times$/$1{,}80\times$) quanto em tempo ($\approx 3$--$5\times$ mais rápido);
-    \item Para $N = 100.000$: LZW supera o Huffman em taxa ($1{,}95\times$ vs $1{,}88\times$), mas ainda é $\approx 5\times$ mais lento;
-    \item \textbf{Memória}: a memória do LZW cresce com o arquivo (3,8 MB $\to$ 9,5 MB), pois o dicionário de \textit{strings} cresce até 65.536 entradas; o Huffman mantém uso estável ($\approx$ 3,3--5,4 MB) independentemente do tamanho.
+    \item Para $N = 100$ e $N = 10.000$ (chaves aleatórias): Huffman supera o LZW em taxa ($1{,}29\times$/$1{,}72\times$ vs $0{,}81\times$/$1{,}60\times$ para $T=3$). O LZW chega a \textbf{expandir} o arquivo para $N = 100$ ($0{,}81\times$), pois o \textit{overhead} do cabeçalho supera o ganho em um arquivo muito pequeno;
+    \item Para $N = 100.000$ e $N = 1.000.000$ (chaves sequenciais): LZW supera expressivamente o Huffman ($4{,}19\times$ vs $2{,}52\times$ para $T=3$, $N=100.000$). A alta regularidade das chaves sequenciais (\texttt{k000000000}, \texttt{k000000001}, \ldots) cria padrões de bytes repetitivos que o dicionário LZW explora muito eficientemente;
+    \item \textbf{Queda do LZW em 1.000.000}: a taxa cai de $4{,}19\times$ ($N=100.000$) para $3{,}60\times$ ($N=1.000.000$). Com o arquivo maior, o dicionário de 65.536 entradas satura antes de processar todo o conteúdo e novos padrões não podem mais ser registrados, reduzindo a eficiência;
+    \item \textbf{Tempo}: o Huffman é $\approx 10\times$ mais rápido na compressão para todos os tamanhos. A descompressão LZW é rápida ($\approx 74$~ms para 1M chaves); a descompressão Huffman leva $\approx 210$~ms via trie binária estática, que percorre bit a bit com custo $O(k)$ por símbolo (onde $k$ é o comprimento do código), sendo $\approx 7\times$ mais rápida que a abordagem por mapeamento de \textit{strings}.
 \end{itemize}
-
-O LZW melhora expressivamente com arquivos maiores (de $1{,}34\times$ para $1{,}95\times$) porque seu dicionário acumula padrões de \textit{sequências} de bytes à medida que processa o arquivo. O arquivo da Árvore B é rico nesses padrões: cabeçalhos de nó (\texttt{leaf} e \texttt{n}) se repetem frequentemente, os comprimentos das chaves formam sequências curtas previsíveis, e o conteúdo alfabético das chaves cria bigramas e trigramas recorrentes. Com 100.000 chaves, o dicionário de 65.536 entradas do LZW fica totalmente preenchido e bem sintonizado para o arquivo.
-
-O Huffman é mais estável (de $1{,}81\times$ para $1{,}88\times$) porque explora apenas a frequência individual de cada byte, que converge rapidamente. Para arquivos pequenos, onde o LZW ainda não acumulou padrões suficientes no dicionário, o Huffman leva vantagem clara. Para arquivos grandes, o LZW inverte o resultado.
 
 \subsection{Integridade dos dados}
 
@@ -438,12 +444,12 @@ Em todos os testes, os arquivos descomprimidos foram verificados com \texttt{cmp
 \section{Conclusão}
 % ------------------------------------------------------------------
 
-O trabalho demonstrou que a Árvore B é uma estrutura de indexação eficiente mesmo para centenas de milhares de chaves, com operações na casa dos microssegundos e crescimento logarítmico no número de nós acessados.
+O trabalho demonstrou que a Árvore B é uma estrutura de indexação eficiente para até 1.000.000 de chaves, com operações na casa dos microssegundos e crescimento logarítmico no número de nós acessados.
 
-A escolha do grau $T$ tem impacto direto no desempenho: graus maiores reduzem a altura da árvore e o número de nós visitados, ao custo de nós maiores individualmente. Para sistemas orientados a disco, onde o acesso por nó domina o custo total, $T$ grande é claramente superior. Em memória principal, o ganho é menor mas ainda presente (tanto em nós visitados quanto em memória total).
+A escolha do grau $T$ tem impacto direto na estrutura: com $T = 50$ e $N = 1.000.000$, a árvore tem apenas 4 níveis e 14.575 nós, contra 10 níveis e 312.680 nós para $T = 3$ ($21\times$ menos nós). Em memória principal, com busca binária dentro dos nós, o total de comparações é $O(\log N)$ para qualquer $T$. O ganho em nós visitados ($-64\%$) não se traduz em ganho proporcional de tempo: para $N = 1.000.000$, $T = 50$ é marginalmente mais lento (1,28 vs 1,20~$\mu$s), pois compensa a menor profundidade com mais comparações por nó. Em sistemas orientados a disco, onde cada acesso a nó representa um bloco físico, $T$ grande seria claramente superior.
 
-Em relação à compressão, os resultados dependem do tamanho do arquivo. Para arquivos pequenos e médios (até 10.000 chaves), o \textbf{Huffman Canônico} foi superior ao LZW tanto em taxa ($1{,}81\times$/$1{,}88\times$ vs $1{,}34\times$/$1{,}80\times$) quanto em tempo ($\approx 3$--$5\times$ mais rápido). Para arquivos grandes (100.000 chaves), o \textbf{LZW} superou o Huffman em taxa ($1{,}95\times$ vs $1{,}88\times$), pois seu dicionário de 65.536 entradas se torna totalmente preenchido e os padrões repetidos do arquivo binário da árvore são explorados eficientemente. O Huffman mantém uso de memória estável e tempo de execução mais baixo em todos os cenários.
+Em relação à compressão, o desempenho depende fortemente do tamanho do arquivo e da regularidade das chaves. Para arquivos pequenos com chaves aleatórias ($N \leq 10.000$), o \textbf{Huffman} é superior em taxa e é $\approx 10\times$ mais rápido. Para arquivos grandes com chaves sequenciais ($N \geq 100.000$), o \textbf{LZW} supera o Huffman expressivamente em taxa ($4{,}19\times$ vs $2{,}52\times$ para $N = 100.000$), pois o dicionário acumula os padrões altamente repetitivos das chaves sequenciais. Porém, o LZW perde eficiência ao saturar seu dicionário de 65.536 entradas ($3{,}60\times$ para $N = 1.000.000$ vs $4{,}19\times$ para $N = 100.000$). O Huffman mantém tempo de compressão baixo e uso de memória estável em todos os cenários; sua descompressão via trie binária ($\approx 210$~ms para 1M chaves) é mais lenta que o LZW ($\approx 74$~ms) mas opera em tempo $O(k)$ por símbolo.
 
-Como trabalho futuro, seria interessante avaliar o impacto de formatos de arquivo alternativos (por exemplo, serialização em largura ao invés de pré-ordem) sobre a taxa de compressão, uma vez que nós do mesmo nível tendem a ter conteúdo similar e poderiam ser melhor comprimidos juntos.
+Como trabalho futuro, seria interessante avaliar: (1) LZW com códigos de largura variável para superar o limite de 65.536 entradas; (2) serialização em largura (\textit{level-order}) ao invés de pré-ordem, pois nós do mesmo nível têm conteúdo similar e poderiam ser melhor comprimidos juntos.
 
 \end{document}
