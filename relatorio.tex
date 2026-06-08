@@ -105,8 +105,9 @@ struct Node {
     bool leaf;
     std::vector<std::string> keys; // chaves[0..n-1]
     std::vector<Node*> ch;         // filhos[0..n]
-    Node(int t, bool lf) : n(0), leaf(lf),
-        keys(2*t-1), ch(2*t, nullptr) {}
+    Node(int t, bool lf) : n(0), leaf(lf), keys(2*t-1) {
+        if (!lf) ch.resize(2*t, nullptr); // folhas nao alocam filhos
+    }
 };
 \end{lstlisting}
 
