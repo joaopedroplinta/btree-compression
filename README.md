@@ -13,6 +13,7 @@
 |---|---|
 | `btree.cpp` | Programa principal da Árvore B com chaves string |
 | `compress.cpp` | Programa de compressão/descompressão (LZW e Huffman) |
+| `utils.h` | Utilitário compartilhado: leitura de uso de memória via `/proc/self/status` |
 | `Makefile` | Compilação dos dois programas |
 | `test_btree.sh` | Script de testes de desempenho da Árvore B |
 | `test_compress.sh` | Script de testes dos algoritmos de compressão |

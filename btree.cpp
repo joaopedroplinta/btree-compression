@@ -12,17 +12,7 @@
 #include <chrono>
 #include <sstream>
 #include <algorithm>
-
-static long get_mem_kb() {
-    std::ifstream f("/proc/self/status");
-    if (!f) return 0;
-    std::string line;
-    while (std::getline(f, line)) {
-        long kb;
-        if (sscanf(line.c_str(), "VmRSS: %ld kB", &kb) == 1) return kb;
-    }
-    return 0;
-}
+#include "utils.h"
 
 struct Node {
     int n;
@@ -30,7 +20,9 @@ struct Node {
     std::vector<std::string> keys;
     std::vector<Node*> ch;
 
-    Node(int t, bool lf) : n(0), leaf(lf), keys(2*t - 1), ch(2*t, nullptr) {}
+    Node(int t, bool lf) : n(0), leaf(lf), keys(2*t - 1) {
+        if (!lf) ch.resize(2*t, nullptr);
+    }
 };
 
 class BTree {
@@ -352,7 +344,10 @@ public:
 
 int main(int argc, char* argv[]) {
     int t = 3;
-    if (argc > 1) t = std::max(2, std::stoi(argv[1]));
+    if (argc > 1) {
+        try { t = std::max(2, std::stoi(argv[1])); }
+        catch (...) { std::cerr << "T invalido, usando T=3\n"; }
+    }
 
     std::cout << "Arvore B | T=" << t
               << " | max chaves/no=" << 2*t - 1

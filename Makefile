@@ -7,10 +7,10 @@ ZIP_NAME = jpshp
 
 all: btree compress
 
-btree: btree.cpp
+btree: btree.cpp utils.h
 	$(CXX) $(CXXFLAGS) -o btree btree.cpp
 
-compress: compress.cpp
+compress: compress.cpp utils.h
 	$(CXX) $(CXXFLAGS) -o compress compress.cpp
 
 clean:
